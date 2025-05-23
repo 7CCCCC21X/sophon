@@ -1,36 +1,96 @@
 <!DOCTYPE html>
 <html lang="zh">
 <head>
-  <meta charset="UTF-8" />
-  <title>Sophon 空投批量查询</title>
+  <meta charset="UTF-8">
+  <title>Sophon 空投批量查询工具</title>
   <style>
     body {
-      font-family: sans-serif;
+      font-family: "Segoe UI", sans-serif;
       padding: 20px;
-      max-width: 800px;
+      max-width: 900px;
       margin: auto;
+      background: #f9f9f9;
     }
-    textarea {
-      width: 100%;
-      height: 150px;
+
+    h2 {
+      text-align: center;
       margin-bottom: 10px;
     }
-    button {
-      padding: 10px 20px;
-      font-size: 16px;
+
+    textarea {
+      width: 100%;
+      height: 140px;
+      padding: 10px;
+      font-size: 14px;
+      margin-bottom: 10px;
     }
+
+    button {
+      padding: 8px 20px;
+      font-size: 15px;
+      background-color: #0078d4;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #005fa3;
+    }
+
+    #summary {
+      margin-top: 15px;
+      font-weight: bold;
+      font-size: 15px;
+    }
+
     table {
       width: 100%;
       border-collapse: collapse;
       margin-top: 20px;
+      background: white;
     }
+
     th, td {
-      padding: 8px;
       border: 1px solid #ccc;
+      padding: 8px 10px;
       text-align: left;
     }
-    .success { color: green; }
-    .fail { color: red; }
+
+    tbody tr:nth-child(even) {
+      background-color: #f4f7fa;
+    }
+
+    tbody tr:hover {
+      background-color: #eef3fc;
+    }
+
+    .success {
+      color: green;
+      font-weight: bold;
+    }
+
+    .fail {
+      color: red;
+      font-weight: bold;
+    }
+
+    .footer {
+      margin-top: 30px;
+      font-size: 14px;
+      text-align: center;
+      color: #666;
+    }
+
+    .footer a {
+      color: #0078d4;
+      text-decoration: none;
+    }
+
+    .footer a:hover {
+      text-decoration: underline;
+    }
   </style>
 </head>
 <body>
@@ -38,6 +98,8 @@
   <p>每行输入一个钱包地址：</p>
   <textarea id="input" placeholder="0x..."></textarea><br>
   <button onclick="check()">查询空投</button>
+
+  <div id="summary">尚未开始查询</div>
 
   <table id="result">
     <thead>
@@ -51,14 +113,27 @@
     <tbody></tbody>
   </table>
 
+  <div class="footer">
+    作者推特：<a href="https://twitter.com/0xXIAOc" target="_blank">@0xXIAOc</a>
+  </div>
+
   <script>
     async function check() {
-      const lines = document.getElementById("input").value.trim().split("\n").filter(Boolean);
+      const lines = [...new Set(
+        document.getElementById("input").value
+          .trim().split("\n")
+          .map(x => x.trim())
+          .filter(Boolean)
+      )];
+
       const tbody = document.querySelector("#result tbody");
       tbody.innerHTML = "";
+      let totalAmount = 0;
+      let qualifiedCount = 0;
 
       for (let i = 0; i < lines.length; i++) {
-        const addr = lines[i].trim();
+        const addr = lines[i];
+        document.getElementById("summary").innerText = `正在查询第 ${i + 1} / ${lines.length} 个地址…`;
         const row = document.createElement("tr");
         row.innerHTML = `<td>${i + 1}</td><td>${addr}</td><td>查询中...</td><td>等待</td>`;
         tbody.appendChild(row);
@@ -69,20 +144,26 @@
 
           if (data.allocations && data.allocations.length > 0) {
             const amount = BigInt(data.allocations[0].tokenAmount) / 10n ** 18n;
+            totalAmount += Number(amount);
+            qualifiedCount++;
+
             row.children[2].textContent = amount.toString();
-            row.children[3].textContent = "✅ 成功";
+            row.children[3].innerHTML = "✅ 合格";
             row.children[3].className = "success";
           } else {
             row.children[2].textContent = "0";
-            row.children[3].textContent = "❌ 无资格";
+            row.children[3].innerHTML = "❌ 无资格";
             row.children[3].className = "fail";
           }
-        } catch (err) {
+        } catch (e) {
           row.children[2].textContent = "-";
-          row.children[3].textContent = "❌ 查询失败";
+          row.children[3].innerHTML = "❌ 查询失败";
           row.children[3].className = "fail";
         }
       }
+
+      document.getElementById("summary").innerText =
+        `✅ 查询完成，共 ${lines.length} 个地址，合格 ${qualifiedCount} 个，总空投数量：${totalAmount} 个代币`;
     }
   </script>
 </body>
